@@ -1,0 +1,13 @@
+pandas
+numpy
+scikit-learn
+tensorflow==2.11.0
+imbalanced-learn
+joblib
+openpyxl
+flask
+flask-sqlalchemy
+flask-login
+werkzeug
+matplotlib
+seaborn
