@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doctor Login — CKD Predictor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #0B1E3D;
+    --navy-mid: #12306B;
+    --teal: #00C9B1;
+    --teal-soft: #00C9B122;
+    --white: #FFFFFF;
+    --gray: #8A99B5;
+    --gray-light: #E3EAF5;
+    --red: #FF5B5B;
+    --green: #00C9B1;
+    --card-bg: #FFFFFF;
+    --input-bg: #F4F7FC;
+    --radius: 14px;
+    --shadow: 0 8px 40px rgba(11,30,61,0.13);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--navy);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Blobs */
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.18;
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::before {
+    width: 500px; height: 500px;
+    background: var(--teal);
+    top: -100px; right: -100px;
+  }
+  body::after {
+    width: 400px; height: 400px;
+    background: #4A8FE7;
+    bottom: -80px; left: -80px;
+  }
+
+  /* Container */
+  .auth-container {
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  .auth-header {
+    text-align: center;
+    margin-bottom: 36px;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--teal-soft);
+    border: 1px solid #00C9B133;
+    color: var(--teal);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 100px;
+    margin-bottom: 16px;
+  }
+
+  .badge span {
+    width: 7px;
+    height: 7px;
+    background: var(--teal);
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse 1.8s infinite;
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    color: var(--white);
+    line-height: 1.15;
+    margin-bottom: 10px;
+  }
+
+  h1 em { font-style: italic; color: var(--teal); }
+
+  .subtitle {
+    color: var(--gray);
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  /* Card */
+  .card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    padding: 40px;
+    animation: fadeUp 0.7s ease both 0.1s;
+  }
+
+  /* Form */
+  .form-group {
+    margin-bottom: 22px;
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--navy);
+    letter-spacing: 0.02em;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  .input-wrap {
+    position: relative;
+  }
+
+  .input-wrap .icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray);
+    font-size: 16px;
+    pointer-events: none;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"] {
+    width: 100%;
+    padding: 12px 14px 12px 40px;
+    background: var(--input-bg);
+    border: 1.5px solid transparent;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--navy);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  }
+
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  input[type="password"]:focus {
+    border-color: var(--teal);
+    background: #fff;
+    box-shadow: 0 0 0 4px var(--teal-soft);
+  }
+
+  .form-hint {
+    font-size: 11px;
+    color: var(--gray);
+    margin-top: 4px;
+  }
+
+  /* Submit button */
+  .submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--teal), var(--navy-mid));
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin-top: 10px;
+  }
+
+  .submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0,201,177,0.35);
+  }
+
+  .submit-btn:active {
+    transform: translateY(0);
+  }
+
+  /* Error message */
+  .error-message {
+    background: rgba(255, 91, 91, 0.1);
+    color: #FF5B5B;
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    margin-bottom: 20px;
+    border-left: 3px solid #FF5B5B;
+  }
+
+  /* Footer links */
+  .auth-footer {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 13px;
+    color: var(--gray);
+  }
+
+  .auth-footer a {
+    color: var(--teal);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+  }
+
+  .auth-footer a:hover {
+    color: var(--navy-mid);
+  }
+
+  .auth-footer p {
+    margin: 12px 0;
+  }
+
+  /* Animations */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.7); }
+  }
+
+  @media (max-width: 540px) {
+    .card { padding: 28px 22px; }
+    h1 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="auth-container">
+  <div class="auth-header">
+    <div class="badge"><span></span> Doctor Access</div>
+    <h1>Welcome <em>Back</em></h1>
+    <p class="subtitle">Healthcare provider login</p>
+  </div>
+
+  <div class="card">
+    {% if error %}
+    <div class="error-message">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/login">
+      <div class="form-group">
+        <label for="username">Username or Email</label>
+        <div class="input-wrap">
+          <span class="icon">👤</span>
+          <input type="text" id="username" name="username" placeholder="johndoe or dr.johndoe@hospital.com" required autofocus>
+        </div>
+        <span class="form-hint">Enter your username or registered email</span>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <span class="icon">🔒</span>
+          <input type="password" id="password" name="password" placeholder="••••••••" required>
+        </div>
+        <span class="form-hint">Case-sensitive password</span>
+      </div>
+
+      <button type="submit" class="submit-btn">
+        🔓 Sign In
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <p>Don't have an account? <a href="/register">Create one here</a></p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

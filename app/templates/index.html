@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CKD Health Predictor — Clinical Assessment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #0B1E3D;
+    --navy-mid: #12306B;
+    --teal: #00C9B1;
+    --teal-soft: #00C9B122;
+    --white: #FFFFFF;
+    --offwhite: #F4F7FC;
+    --gray: #8A99B5;
+    --gray-light: #E3EAF5;
+    --red: #FF5B5B;
+    --card-bg: #FFFFFF;
+    --input-bg: #F4F7FC;
+    --radius: 14px;
+    --shadow: 0 8px 40px rgba(11,30,61,0.13);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--navy);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: clamp(8px, 2vh, 20px) 20px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Ambient blobs */
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.18;
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::before {
+    width: 500px; height: 500px;
+    background: var(--teal);
+    top: -100px; right: -100px;
+  }
+  body::after {
+    width: 400px; height: 400px;
+    background: #4A8FE7;
+    bottom: -80px; left: -80px;
+  }
+
+  /* Top bar */
+  .top-bar {
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: clamp(8px, 1.5vh, 16px);
+    padding: 0 clamp(16px, 5vw, 40px);
+    position: relative;
+    z-index: 1;
+    flex-wrap: wrap;
+    gap: clamp(8px, 2vw, 16px);
+  }
+
+  .doctor-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--white);
+    font-size: 14px;
+  }
+
+  .doctor-badge {
+    background: rgba(0, 201, 177, 0.15);
+    color: var(--teal);
+    padding: 6px 12px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .logout-btn {
+    padding: 8px 16px;
+    background: rgba(255, 91, 91, 0.1);
+    color: #FF5B5B;
+    border: 1px solid rgba(255, 91, 91, 0.3);
+    border-radius: var(--radius);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .logout-btn:hover {
+    background: rgba(255, 91, 91, 0.2);
+    transform: translateY(-1px);
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: clamp(8px, 2vh, 20px);
+    animation: fadeDown 0.6s ease both;
+    position: relative; z-index: 1;
+    width: 100%;
+    max-width: 100%;
+    padding: 0 clamp(16px, 5vw, 40px);
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--teal-soft);
+    border: 1px solid #00C9B133;
+    color: var(--teal);
+    font-size: clamp(9px, 1.5vw, 12px);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: clamp(3px, 0.5vh, 6px) clamp(10px, 2vw, 14px);
+    border-radius: 100px;
+    margin-bottom: clamp(6px, 1.5vh, 12px);
+  }
+  .badge span { width: 7px; height: 7px; background: var(--teal); border-radius: 50%; display: inline-block; animation: pulse 1.8s infinite; }
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(20px, 5vw, 36px);
+    color: var(--white);
+    line-height: 1.15;
+    margin-bottom: clamp(4px, 1vh, 10px);
+  }
+  h1 em { font-style: italic; color: var(--teal); }
+  .subtitle {
+    color: var(--gray);
+    font-size: clamp(12px, 2.5vw, 15px);
+    font-weight: 400;
+    max-width: 440px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+
+  /* Card */
+  .card {
+    background: var(--card-bg);
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+    width: calc(100% - clamp(16px, 6vw, 40px));
+    max-width: none;
+    max-height: clamp(600px, 85vh, 90vh);
+    padding: clamp(12px, 2vh, 20px) clamp(16px, 3vw, 24px);
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.7s ease both 0.1s;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .card form {
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 8px;
+  }
+  
+  .card form::-webkit-scrollbar {
+    width: 6px;
+  }
+  .card form::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .card form::-webkit-scrollbar-thumb {
+    background: var(--gray-light);
+    border-radius: 3px;
+  }
+  .card form::-webkit-scrollbar-thumb:hover {
+    background: var(--gray);
+  }
+
+  .section-label {
+    font-size: clamp(9px, 1.5vw, 11px);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gray);
+    margin-bottom: clamp(8px, 1.5vh, 12px);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--gray-light);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: clamp(8px, 2vw, 12px);
+    margin-bottom: clamp(10px, 2vh, 16px);
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(3px, 1vh, 5px);
+  }
+  .field.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: clamp(10px, 1.8vw, 12px);
+    font-weight: 600;
+    color: var(--navy);
+    letter-spacing: 0.02em;
+  }
+  label .unit {
+    font-weight: 400;
+    color: var(--gray);
+    margin-left: 4px;
+  }
+
+  .input-wrap {
+    position: relative;
+  }
+  .input-wrap .icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray);
+    font-size: clamp(13px, 2vw, 15px);
+    pointer-events: none;
+  }
+
+  input[type="number"],
+  input[type="text"] {
+    width: 100%;
+    padding: clamp(7px, 1.5vh, 10px) clamp(10px, 2vw, 14px) clamp(7px, 1.5vh, 10px) 32px;
+    background: var(--input-bg);
+    border: 1.5px solid transparent;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: clamp(12px, 2vw, 14px);
+    color: var(--navy);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  input[type="number"]:focus,
+  input[type="text"]:focus {
+    border-color: var(--teal);
+    background: #fff;
+    box-shadow: 0 0 0 4px var(--teal-soft);
+  }
+  input[type="number"]:valid:not(:placeholder-shown),
+  input[type="text"]:valid:not(:placeholder-shown) {
+    border-color: #00C9B155;
+  }
+
+  .hint {
+    font-size: clamp(9px, 1.5vw, 11px);
+    color: var(--gray);
+    margin-top: 1px;
+  }
+
+  /* Toggle for hypertension */
+  .toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--input-bg);
+    border-radius: var(--radius);
+    padding: clamp(8px, 1.5vh, 12px) clamp(10px, 2vw, 14px);
+    border: 1.5px solid transparent;
+    transition: border-color 0.2s;
+  }
+  .toggle-label-text { font-size: clamp(12px, 2vw, 14px); color: var(--navy); flex: 1; }
+  .toggle {
+    position: relative;
+    width: 48px;
+    height: 26px;
+    flex-shrink: 0;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    inset: 0;
+    background: #D1D9E6;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  .slider::before {
+    content: '';
+    position: absolute;
+    width: 20px; height: 20px;
+    left: 3px; top: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  .toggle input:checked + .slider { background: var(--teal); }
+  .toggle input:checked + .slider::before { transform: translateX(22px); }
+  #hyp-hidden { display: none; }
+
+  /* Progress bar */
+  .progress-wrap {
+    margin-bottom: clamp(8px, 1.5vh, 14px);
+    flex-shrink: 0;
+  }
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: clamp(10px, 1.5vw, 12px);
+    color: var(--gray);
+    margin-bottom: clamp(4px, 1vh, 8px);
+  }
+  .progress-bar {
+    height: 4px;
+    background: var(--gray-light);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00C9B1, #4A8FE7);
+    border-radius: 100px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  /* Submit */
+  .submit-btn {
+    width: 100%;
+    padding: clamp(10px, 1.5vh, 14px);
+    background: linear-gradient(135deg, #00C9B1, #12306B);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: clamp(12px, 2vw, 15px);
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .submit-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0);
+    transition: background 0.2s;
+  }
+  .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,201,177,0.35); }
+  .submit-btn:active { transform: translateY(0); }
+  .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  /* Info strip */
+  .info-strip {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    background: #FFF8E1;
+    border-left: 3px solid #FFD740;
+    border-radius: 10px;
+    padding: clamp(6px, 1vh, 10px) clamp(10px, 2vw, 14px);
+    margin-top: clamp(8px, 1.5vh, 12px);
+    font-size: clamp(9px, 1.5vw, 12px);
+    color: #7A6000;
+    line-height: 1.4;
+    flex-shrink: 0;
+  }
+  .info-strip .ico { font-size: clamp(12px, 2vw, 16px); flex-shrink: 0; margin-top: 1px; }
+
+  /* Footer note */
+  .footer-note {
+    text-align: center;
+    color: var(--gray);
+    font-size: clamp(10px, 1.5vw, 12px);
+    margin-top: clamp(8px, 2vh, 16px);
+    z-index: 1;
+    position: relative;
+    animation: fadeUp 0.7s ease both 0.3s;
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.7); }
+  }
+
+  @media (max-width: 540px) {
+    .card { padding: 12px 14px; }
+    .grid { grid-template-columns: 1fr; gap: 8px; }
+    .field.full { grid-column: 1; }
+    .top-bar { flex-direction: column; gap: 8px; text-align: center; }
+  }
+
+  /* Landscape orientation on mobile */
+  @media (max-height: 500px) and (orientation: landscape) {
+    .card { max-height: 95vh; padding: clamp(8px, 1vh, 12px) clamp(12px, 2vw, 16px); }
+    .header { margin-bottom: clamp(4px, 1vh, 8px); }
+    .section-label { margin-bottom: clamp(6px, 1vh, 10px); }
+    .grid { gap: clamp(6px, 1.5vw, 10px); margin-bottom: clamp(6px, 1.5vh, 12px); }
+  }
+
+  /* Tablet view */
+  @media (min-width: 541px) and (max-width: 900px) {
+    .card { max-width: none; }
+    .grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* Desktop/Large screens */
+  @media (min-width: 901px) {
+    .card { max-width: none; }
+    .grid { grid-template-columns: repeat(3, 1fr); }
+    .field.full { grid-column: 1 / -1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top bar with doctor info -->
+<div class="top-bar">
+  <div class="doctor-info">
+    👤 <span class="doctor-badge">Dr. {{ doctor.full_name }}</span>
+  </div>
+  <a href="/logout" class="logout-btn">🚪 Logout</a>
+</div>
+
+<div class="header">
+  <div class="badge"><span></span> Clinical Prediction Tool</div>
+  <h1>CKD <em>Health</em> Predictor</h1>
+  <p class="subtitle">Enter patient details and lab values below to receive an AI-assisted assessment for Chronic Kidney Disease risk.</p>
+</div>
+
+<div class="card">
+
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-info">
+      <span>Form Completion</span>
+      <span id="progress-pct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+
+  <form action="/predict" method="POST" id="ckd-form" novalidate>
+
+    <!-- Patient Name (NEW) -->
+    <div class="section-label">Patient Information</div>
+    <div class="grid" style="margin-bottom:clamp(8px, 1.5vh, 12px);">
+      <div class="field full">
+        <label for="patient_name">Patient Name <span class="unit">required</span></label>
+        <div class="input-wrap">
+          <span class="icon">🏥</span>
+          <input type="text" id="patient_name" name="patient_name" placeholder="e.g. John Smith" required>
+        </div>
+        <span class="hint">Full name of the patient being evaluated</span>
+      </div>
+    </div>
+
+    <!-- Demographics -->
+    <div class="section-label">Patient Demographics</div>
+    <div class="grid" style="margin-bottom:clamp(8px, 1.5vh, 12px);">
+      <div class="field">
+        <label for="age">Age <span class="unit">years</span></label>
+        <div class="input-wrap">
+          <span class="icon">👤</span>
+          <input type="number" id="age" name="age" placeholder="e.g. 45" min="1" max="120" step="1" required>
+        </div>
+        <span class="hint">1 – 120 years</span>
+      </div>
+      <div class="field">
+        <label for="bp">Blood Pressure <span class="unit">mmHg</span></label>
+        <div class="input-wrap">
+          <span class="icon">💉</span>
+          <input type="number" id="bp" name="bp" placeholder="e.g. 80" min="40" max="200" step="any" required>
+        </div>
+        <span class="hint">Normal: 60 – 90 mmHg (diastolic)</span>
+      </div>
+    </div>
+
+    <!-- Urinalysis -->
+    <div class="section-label">Urinalysis</div>
+    <div class="grid">
+      <div class="field">
+        <label for="sg">Specific Gravity</label>
+        <div class="input-wrap">
+          <span class="icon">🧪</span>
+          <input type="number" id="sg" name="sg" placeholder="e.g. 1.015" min="1.000" max="1.030" step="0.001" required>
+        </div>
+        <span class="hint">Range: 1.005 – 1.025</span>
+      </div>
+      <div class="field">
+        <label for="al">Albumin</label>
+        <div class="input-wrap">
+          <span class="icon">🔬</span>
+          <input type="number" id="al" name="al" placeholder="0 – 5" min="0" max="5" step="1" required>
+        </div>
+        <span class="hint">Scale: 0 (none) to 5 (heavy)</span>
+      </div>
+      <div class="field">
+        <label for="su">Sugar</label>
+        <div class="input-wrap">
+          <span class="icon">🍬</span>
+          <input type="number" id="su" name="su" placeholder="0 – 5" min="0" max="5" step="1" required>
+        </div>
+        <span class="hint">Scale: 0 (none) to 5 (heavy)</span>
+      </div>
+    </div>
+
+    <!-- Blood Chemistry -->
+    <div class="section-label" style="margin-top:clamp(8px, 1.5vh, 12px);">Blood Chemistry</div>
+    <div class="grid">
+      <div class="field">
+        <label for="bgr">Blood Glucose Random <span class="unit">mg/dL</span></label>
+        <div class="input-wrap">
+          <span class="icon">🩸</span>
+          <input type="number" id="bgr" name="bgr" placeholder="e.g. 120" min="22" max="490" step="any" required>
+        </div>
+        <span class="hint">Normal: 70 – 140 mg/dL</span>
+      </div>
+      <div class="field">
+        <label for="bu">Blood Urea <span class="unit">mg/dL</span></label>
+        <div class="input-wrap">
+          <span class="icon">🧫</span>
+          <input type="number" id="bu" name="bu" placeholder="e.g. 25" min="1" max="400" step="any" required>
+        </div>
+        <span class="hint">Normal: 7 – 25 mg/dL</span>
+      </div>
+      <div class="field">
+        <label for="sc">Serum Creatinine <span class="unit">mg/dL</span></label>
+        <div class="input-wrap">
+          <span class="icon">⚗️</span>
+          <input type="number" id="sc" name="sc" placeholder="e.g. 1.2" min="0.4" max="76" step="any" required>
+        </div>
+        <span class="hint">Normal: 0.6 – 1.2 mg/dL</span>
+      </div>
+      <div class="field">
+        <label for="sod">Sodium <span class="unit">mEq/L</span></label>
+        <div class="input-wrap">
+          <span class="icon">🧂</span>
+          <input type="number" id="sod" name="sod" placeholder="e.g. 138" min="100" max="165" step="any" required>
+        </div>
+        <span class="hint">Normal: 135 – 145 mEq/L</span>
+      </div>
+      <div class="field">
+        <label for="pot">Potassium <span class="unit">mEq/L</span></label>
+        <div class="input-wrap">
+          <span class="icon">⚡</span>
+          <input type="number" id="pot" name="pot" placeholder="e.g. 4.5" min="2.5" max="47" step="any" required>
+        </div>
+        <span class="hint">Normal: 3.5 – 5.0 mEq/L</span>
+      </div>
+    </div>
+
+    <!-- Haematology -->
+    <div class="section-label" style="margin-top:clamp(8px, 1.5vh, 12px);">Haematology</div>
+    <div class="grid">
+      <div class="field">
+        <label for="hemo">Hemoglobin <span class="unit">g/dL</span></label>
+        <div class="input-wrap">
+          <span class="icon">🔴</span>
+          <input type="number" id="hemo" name="hemo" placeholder="e.g. 14.5" min="3" max="17.8" step="any" required>
+        </div>
+        <span class="hint">Normal: 12 – 17.5 g/dL</span>
+      </div>
+      <div class="field">
+        <label for="pcv">Packed Cell Volume <span class="unit">%</span></label>
+        <div class="input-wrap">
+          <span class="icon">🩺</span>
+          <input type="number" id="pcv" name="pcv" placeholder="e.g. 44" min="9" max="54" step="any" required>
+        </div>
+        <span class="hint">Normal: 36 – 54%</span>
+      </div>
+      <div class="field">
+        <label for="wbcc">WBC Count <span class="unit">cells/μL</span></label>
+        <div class="input-wrap">
+          <span class="icon">🦠</span>
+          <input type="number" id="wbcc" name="wbcc" placeholder="e.g. 7500" min="2000" max="26400" step="any" required>
+        </div>
+        <span class="hint">Normal: 4,000 – 11,000</span>
+      </div>
+      <div class="field">
+        <label for="rbcc">RBC Count <span class="unit">million/μL</span></label>
+        <div class="input-wrap">
+          <span class="icon">💊</span>
+          <input type="number" id="rbcc" name="rbcc" placeholder="e.g. 4.5" min="2.1" max="8" step="any" required>
+        </div>
+        <span class="hint">Normal: 4.2 – 5.9 million/μL</span>
+      </div>
+    </div>
+
+    <!-- Medical History -->
+    <div class="section-label" style="margin-top:clamp(8px, 1.5vh, 12px);">Medical History</div>
+    <div class="field full" style="margin-bottom:clamp(10px, 1.5vh, 12px);">
+      <label>Hypertension</label>
+      <div class="toggle-wrap" id="hyp-wrap">
+        <span class="toggle-label-text" id="hyp-text">No — Patient does not have hypertension</span>
+        <label class="toggle">
+          <input type="checkbox" id="hyp-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <input type="hidden" name="hypertension" id="hyp-hidden" value="0">
+    </div>
+
+    <button type="submit" class="submit-btn" id="submit-btn">
+      <span>🔍</span> Run Prediction Analysis
+    </button>
+
+  </form>
+
+  <div class="info-strip">
+    <span class="ico">⚠️</span>
+    <span>This tool is intended for clinical support only. Results should not replace professional medical diagnosis. Always consult a qualified nephrologist.</span>
+  </div>
+</div>
+
+<div class="footer-note">
+  Chronic Kidney Disease Prediction · Clinical ML Model · v2.1
+</div>
+
+<script>
+  const form = document.getElementById('ckd-form');
+  const inputs = form.querySelectorAll('input[type="number"]');
+  const fill = document.getElementById('progress-fill');
+  const pct = document.getElementById('progress-pct');
+
+  function updateProgress() {
+    const total = inputs.length;
+    let filled = 0;
+    inputs.forEach(i => { if (i.value !== '') filled++; });
+    const p = Math.round((filled / total) * 100);
+    fill.style.width = p + '%';
+    pct.textContent = p + '%';
+  }
+  inputs.forEach(i => i.addEventListener('input', updateProgress));
+
+  // Hypertension toggle
+  const toggle = document.getElementById('hyp-toggle');
+  const hypText = document.getElementById('hyp-text');
+  const hypHidden = document.getElementById('hyp-hidden');
+  const hypWrap = document.getElementById('hyp-wrap');
+
+  toggle.addEventListener('change', () => {
+    if (toggle.checked) {
+      hypText.textContent = 'Yes — Patient has hypertension';
+      hypHidden.value = '1';
+      hypWrap.style.borderColor = 'var(--teal)';
+    } else {
+      hypText.textContent = 'No — Patient does not have hypertension';
+      hypHidden.value = '0';
+      hypWrap.style.borderColor = 'transparent';
+    }
+  });
+
+  // Submit animation
+  const btn = document.getElementById('submit-btn');
+  form.addEventListener('submit', () => {
+    btn.disabled = true;
+    btn.innerHTML = '<span style="display:inline-block;animation:spin 0.8s linear infinite">⏳</span> Analyzing...';
+  });
+
+  // Keyframe for spinner
+  const style = document.createElement('style');
+  style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+  document.head.appendChild(style);
+</script>
+</body>
+</html>

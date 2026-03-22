@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CKD Prediction Result</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #0B1E3D;
+    --white: #FFFFFF;
+    --gray: #8A99B5;
+    --gray-light: #E3EAF5;
+    --radius: 14px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.8s ease;
+  }
+
+  /* Dynamic background set by JS */
+  body.no-ckd { background: linear-gradient(135deg, #0B1E3D 0%, #0D3B30 100%); }
+  body.ckd    { background: linear-gradient(135deg, #1A0B0B 0%, #3B1209 100%); }
+
+  /* Ambient blobs */
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.2;
+    pointer-events: none;
+    z-index: 0;
+    animation: float 8s ease-in-out infinite;
+  }
+  .blob-1 { width: 400px; height: 400px; top: -100px; right: -80px; }
+  .blob-2 { width: 350px; height: 350px; bottom: -80px; left: -80px; animation-delay: 3s; }
+
+  body.no-ckd .blob-1 { background: #00C9B1; }
+  body.no-ckd .blob-2 { background: #4A8FE7; }
+  body.ckd    .blob-1 { background: #FF5B5B; }
+  body.ckd    .blob-2 { background: #FF8C42; }
+
+  /* Card */
+  .card {
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 28px;
+    width: 100%;
+    max-width: 580px;
+    padding: 50px 48px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    animation: scaleIn 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+
+  /* Patient and Doctor Info Cards */
+  .info-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+    padding: 24px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 20px;
+    animation: slideUp 0.6s ease both 0.2s;
+  }
+
+  .info-card {
+    text-align: left;
+    padding: 16px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .info-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .info-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.95);
+    word-break: break-word;
+  }
+
+  /* Icon ring */
+  .icon-ring {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 44px;
+    margin: 0 auto 28px;
+    position: relative;
+    animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both 0.3s;
+  }
+  .icon-ring::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    opacity: 0.3;
+    animation: ringPulse 2.5s ease-in-out infinite;
+  }
+  .no-ckd .icon-ring { background: rgba(0,201,177,0.15); color: #00C9B1; }
+  .ckd-pos .icon-ring { background: rgba(255,91,91,0.15); color: #FF5B5B; }
+
+  .status-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 16px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    animation: fadeUp 0.5s ease both 0.4s;
+  }
+  .no-ckd .status-tag { background: rgba(0,201,177,0.15); color: #00C9B1; border: 1px solid rgba(0,201,177,0.3); }
+  .ckd-pos .status-tag { background: rgba(255,91,91,0.15); color: #FF5B5B; border: 1px solid rgba(255,91,91,0.3); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pulse 1.8s infinite; }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(26px, 5vw, 36px);
+    color: var(--white);
+    line-height: 1.2;
+    margin-bottom: 14px;
+    animation: fadeUp 0.5s ease both 0.5s;
+  }
+  h1 em { font-style: italic; }
+  .no-ckd h1 em { color: #00C9B1; }
+  .ckd-pos h1 em { color: #FF5B5B; }
+
+  .description {
+    color: rgba(255,255,255,0.55);
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: 360px;
+    margin: 0 auto 36px;
+    animation: fadeUp 0.5s ease both 0.6s;
+  }
+
+  /* Confidence badge */
+  .confidence-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 20px;
+    animation: fadeUp 0.5s ease both 0.65s;
+  }
+
+  .confidence-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+  }
+
+  .no-ckd .confidence-badge { background: rgba(0,201,177,0.1); border-color: rgba(0,201,177,0.3); }
+  .ckd-pos .confidence-badge { background: rgba(255,91,91,0.1); border-color: rgba(255,91,91,0.3); }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,0.1);
+    margin: 0 0 28px;
+    animation: fadeUp 0.5s ease both 0.65s;
+  }
+
+  /* Recommendation pills */
+  .recommendations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 36px;
+    animation: fadeUp 0.5s ease both 0.7s;
+  }
+  .pill {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 100px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+    font-weight: 500;
+  }
+
+  /* Buttons */
+  .btn-group {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    animation: fadeUp 0.5s ease both 0.75s;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 28px;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  
+  .btn-primary {
+    background: linear-gradient(135deg, #00C9B1, #007A6D);
+    color: white;
+    box-shadow: 0 6px 24px rgba(0,201,177,0.35);
+  }
+  .btn-primary:hover { box-shadow: 0 10px 32px rgba(0,201,177,0.45); }
+  
+  .btn-danger {
+    background: linear-gradient(135deg, #FF5B5B, #C03030);
+    color: white;
+    box-shadow: 0 6px 24px rgba(255,91,91,0.35);
+  }
+  .btn-danger:hover { box-shadow: 0 10px 32px rgba(255,91,91,0.45); }
+  
+  .btn-outline {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.75);
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .btn-outline:hover { background: rgba(255,255,255,0.13); }
+
+  /* Disclaimer */
+  .disclaimer {
+    margin-top: 28px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.3);
+    line-height: 1.6;
+    animation: fadeUp 0.5s ease both 0.85s;
+    z-index: 1;
+    position: relative;
+    max-width: 480px;
+    text-align: center;
+  }
+
+  /* Error state */
+  .error-message {
+    background: rgba(255,91,91,0.15);
+    border: 1px solid rgba(255,91,91,0.3);
+    color: rgba(255,255,255,0.9);
+    padding: 16px;
+    border-radius: 14px;
+    margin-bottom: 28px;
+    font-size: 14px;
+    animation: fadeUp 0.5s ease both 0.4s;
+  }
+
+  /* Animations */
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.88); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.4); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-30px); }
+  }
+  @keyframes ringPulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.07; transform: scale(1.15); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.6); }
+  }
+
+  @media (max-width: 620px) {
+    .card { padding: 36px 24px; }
+    .btn-group { flex-direction: column; }
+    .btn { justify-content: center; }
+    .info-cards { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Blobs -->
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+{% if error %}
+  <div class="card ckd-pos" style="max-width: 520px;">
+    <div class="icon-ring">❌</div>
+    <h1>Oops! An <em>Error</em> Occurred</h1>
+    <p class="description">{{ result }}</p>
+    <div class="btn-group">
+      <a href="/dashboard" class="btn btn-primary">← Back to Form</a>
+    </div>
+  </div>
+{% elif is_ckd %}
+  <!-- CKD DETECTED -->
+  <div class="card ckd-pos" id="result-card">
+    
+    <!-- Patient & Doctor Info -->
+    <div class="info-cards">
+      <div class="info-card">
+        <div class="info-label">Patient Name</div>
+        <div class="info-value">{{ patient_name }}</div>
+      </div>
+      <div class="info-card">
+        <div class="info-label">Attending Physician</div>
+        <div class="info-value">{{ doctor_name }}</div>
+      </div>
+    </div>
+
+    <div class="icon-ring">⚠️</div>
+    <div class="status-tag"><span class="dot"></span> Attention Required</div>
+    <h1><em>CKD Indicators</em> Detected</h1>
+    <p class="description">The clinical values suggest possible markers associated with Chronic Kidney Disease. Please consult a nephrologist promptly for a comprehensive evaluation.</p>
+    
+    {% if confidence %}
+    <div class="confidence-badge">
+      Clinical Confidence: <span class="confidence-value">{{ confidence }}%</span>
+    </div>
+    {% endif %}
+
+    <div class="divider"></div>
+    <div class="recommendations">
+      <span class="pill">🏥 See a Nephrologist</span>
+      <span class="pill">🚫 Limit Sodium</span>
+      <span class="pill">💊 Monitor Medications</span>
+      <span class="pill">📊 Track Labs</span>
+    </div>
+    <div class="btn-group">
+      <a href="/dashboard" class="btn btn-danger">🔁 Re-assess</a>
+      <a href="#" class="btn btn-outline" onclick="window.print(); return false;">🖨️ Print Report</a>
+    </div>
+  </div>
+
+{% else %}
+  <!-- NO CKD DETECTED -->
+  <div class="card no-ckd" id="result-card">
+    
+    <!-- Patient & Doctor Info -->
+    <div class="info-cards">
+      <div class="info-card">
+        <div class="info-label">Patient Name</div>
+        <div class="info-value">{{ patient_name }}</div>
+      </div>
+      <div class="info-card">
+        <div class="info-label">Attending Physician</div>
+        <div class="info-value">{{ doctor_name }}</div>
+      </div>
+    </div>
+
+    <div class="icon-ring">✅</div>
+    <div class="status-tag"><span class="dot"></span> Assessment Complete</div>
+    <h1>No Signs of <em>CKD Detected</em></h1>
+    <p class="description">Based on the clinical values provided, the model found no indicators associated with Chronic Kidney Disease. Continue maintaining a healthy lifestyle.</p>
+    
+    {% if confidence %}
+    <div class="confidence-badge">
+      Clinical Confidence: <span class="confidence-value">{{ confidence }}%</span>
+    </div>
+    {% endif %}
+
+    <div class="divider"></div>
+    <div class="recommendations">
+      <span class="pill">💧 Stay Hydrated</span>
+      <span class="pill">🥗 Balanced Diet</span>
+      <span class="pill">🏃 Regular Exercise</span>
+      <span class="pill">📅 Annual Check-up</span>
+    </div>
+    <div class="btn-group">
+      <a href="/dashboard" class="btn btn-primary">🔁 New Assessment</a>
+      <a href="#" class="btn btn-outline" onclick="window.print(); return false;">🖨️ Print Report</a>
+    </div>
+  </div>
+
+{% endif %}
+
+<div class="disclaimer">
+  ⚕️ This assessment is intended for clinical support only and should not replace professional medical judgment. Always consult a qualified healthcare provider for diagnosis and treatment decisions.
+</div>
+
+<script>
+  // Set background class based on result
+  const body = document.body;
+  {% if is_ckd %}
+    body.classList.add('ckd');
+  {% else %}
+    body.classList.add('no-ckd');
+  {% endif %}
+</script>
+
+</body>
+</html>
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    animation: fadeUp 0.5s ease both 0.4s;
+  }
+  .no-ckd .status-tag { background: rgba(0,201,177,0.15); color: #00C9B1; border: 1px solid rgba(0,201,177,0.3); }
+  .ckd-pos .status-tag { background: rgba(255,91,91,0.15); color: #FF5B5B; border: 1px solid rgba(255,91,91,0.3); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pulse 1.8s infinite; }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(26px, 5vw, 36px);
+    color: var(--white);
+    line-height: 1.2;
+    margin-bottom: 14px;
+    animation: fadeUp 0.5s ease both 0.5s;
+  }
+  h1 em { font-style: italic; }
+  .no-ckd h1 em { color: #00C9B1; }
+  .ckd-pos h1 em { color: #FF5B5B; }
+
+  .description {
+    color: rgba(255,255,255,0.55);
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: 360px;
+    margin: 0 auto 36px;
+    animation: fadeUp 0.5s ease both 0.6s;
+  }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,0.1);
+    margin: 0 0 28px;
+    animation: fadeUp 0.5s ease both 0.65s;
+  }
+
+  /* Recommendation pills */
+  .recommendations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 36px;
+    animation: fadeUp 0.5s ease both 0.7s;
+  }
+  .pill {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 100px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+    font-weight: 500;
+  }
+
+  /* Buttons */
+  .btn-group {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    animation: fadeUp 0.5s ease both 0.75s;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 28px;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn-primary {
+    background: linear-gradient(135deg, #00C9B1, #007A6D);
+    color: white;
+    box-shadow: 0 6px 24px rgba(0,201,177,0.35);
+  }
+  .btn-primary:hover { box-shadow: 0 10px 32px rgba(0,201,177,0.45); }
+  .btn-danger {
+    background: linear-gradient(135deg, #FF5B5B, #C03030);
+    color: white;
+    box-shadow: 0 6px 24px rgba(255,91,91,0.35);
+  }
+  .btn-outline {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.75);
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .btn-outline:hover { background: rgba(255,255,255,0.13); }
+
+  /* Disclaimer */
+  .disclaimer {
+    margin-top: 28px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.3);
+    line-height: 1.6;
+    animation: fadeUp 0.5s ease both 0.85s;
+    z-index: 1;
+    position: relative;
+    max-width: 480px;
+    text-align: center;
+  }
+
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.88); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.4); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-30px); }
+  }
+  @keyframes ringPulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.07; transform: scale(1.15); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.6); }
+  }
+
+  @media (max-width: 520px) {
+    .card { padding: 36px 24px; }
+    .btn-group { flex-direction: column; }
+    .btn { justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Blobs -->
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<!-- 
+  The result div class is toggled by Flask template engine.
+  Use: class="no-ckd" OR class="ckd-pos"
+  Replace the static demo below with your Jinja2 template logic.
+-->
+
+<!-- FLASK TEMPLATE VERSION (use this in your Flask app):
+{% if 'No CKD' in result %}
+<div class="card no-ckd" id="result-card">
+  <div class="icon-ring">✅</div>
+  <div class="status-tag"><span class="dot"></span> Assessment Complete</div>
+  <h1>No Signs of <em>CKD Detected</em></h1>
+  <p class="description">Based on the clinical values provided, the model found no indicators associated with Chronic Kidney Disease. Continue maintaining a healthy lifestyle.</p>
+  <div class="divider"></div>
+  <div class="recommendations">
+    <span class="pill">💧 Stay Hydrated</span>
+    <span class="pill">🥗 Balanced Diet</span>
+    <span class="pill">🏃 Regular Exercise</span>
+    <span class="pill">📅 Annual Check-up</span>
+  </div>
+  <div class="btn-group">
+    <a href="/" class="btn btn-primary">🔁 New Assessment</a>
+    <a href="#" class="btn btn-outline" onclick="window.print()">🖨️ Print Report</a>
+  </div>
+</div>
+{% else %}
+<div class="card ckd-pos" id="result-card">
+  <div class="icon-ring">⚠️</div>
+  <div class="status-tag"><span class="dot"></span> Attention Required</div>
+  <h1><em>CKD Indicators</em> Detected</h1>
+  <p class="description">The clinical values suggest possible markers associated with Chronic Kidney Disease. Please consult a nephrologist promptly for a comprehensive evaluation.</p>
+  <div class="divider"></div>
+  <div class="recommendations">
+    <span class="pill">🏥 See a Nephrologist</span>
+    <span class="pill">🚫 Limit Sodium</span>
+    <span class="pill">💊 Monitor Medications</span>
+    <span class="pill">📊 Track Labs</span>
+  </div>
+  <div class="btn-group">
+    <a href="/" class="btn btn-danger">🔁 Re-assess</a>
+    <a href="#" class="btn btn-outline" onclick="window.print()">🖨️ Print Report</a>
+  </div>
+</div>
+{% endif %}
+-->
+
+<!-- DEMO PREVIEW (remove this block and uncomment the Flask template above) -->
+<div class="card no-ckd" id="result-card">
+  <div class="icon-ring">✅</div>
+  <div class="status-tag"><span class="dot"></span> Assessment Complete</div>
+  <h1>No Signs of <em>CKD Detected</em></h1>
+  <p class="description">Based on the clinical values provided, the model found no indicators associated with Chronic Kidney Disease. Continue maintaining a healthy lifestyle.</p>
+  <div class="divider"></div>
+  <div class="recommendations">
+    <span class="pill">💧 Stay Hydrated</span>
+    <span class="pill">🥗 Balanced Diet</span>
+    <span class="pill">🏃 Regular Exercise</span>
+    <span class="pill">📅 Annual Check-up</span>
+  </div>
+  <div class="btn-group">
+    <a href="/" class="btn btn-primary">🔁 New Assessment</a>
+    <a href="#" class="btn btn-outline" onclick="window.print()">🖨️ Print Report</a>
+  </div>
+</div>
+<!-- END DEMO -->
+
+<p class="disclaimer">⚠️ This prediction is generated by a machine learning model and is intended for clinical support purposes only. It does not constitute a medical diagnosis. Always consult a licensed healthcare professional.</p>
+
+<script>
+  // Sync body background class with card result class
+  const card = document.getElementById('result-card');
+  if (card) {
+    if (card.classList.contains('no-ckd')) {
+      document.body.classList.add('no-ckd');
+    } else {
+      document.body.classList.add('ckd');
+    }
+  }
+</script>
+</body>
+</html>
